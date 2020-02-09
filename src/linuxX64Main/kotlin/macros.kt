@@ -21,7 +21,6 @@ import cpython.*
 import kotlinx.cinterop.pointed
 import kotlinx.cinterop.ptr
 import kotlinx.cinterop.readBytes
-import kotlinx.cinterop.reinterpret
 
 fun PyError(msg: String? = null): Nothing {
     PyErr_Print()

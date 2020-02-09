@@ -16,6 +16,8 @@
  */
 
 
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package kyc
 
 import PyBytes_AsByteArray
@@ -23,6 +25,7 @@ import PyBytes_Check
 import PyCode_Check
 import PyDict_Check
 import PyError
+import PyFloat_Check
 import PyList_Check
 import PyLong_Check
 import PySet_Check
@@ -30,10 +33,12 @@ import PyTuple_Check
 import PyUnicode_AsByteArray
 import PyUnicode_Check
 import cpython.*
-import kotlinx.cinterop.*
+import kotlinx.cinterop.pointed
+import kotlinx.cinterop.ptr
+import kotlinx.cinterop.reinterpret
+import kotlinx.cinterop.toKString
 import okio.Buffer
 import okio.ByteString
-import okio.internal.commonAsUtf8ToByteArray
 
 fun Buffer.write(type: KycWriter.KycType) {
     type.write(this)
@@ -264,6 +269,7 @@ class KycWriter {
         when {
             PyCode_Check(obb) -> writeCode(obb.reinterpret())
             PyLong_Check(obb) -> writeLong(PyLong_AsLong(obb.ptr))
+            PyFloat_Check(obb) -> writeFloat(obb)
             PyList_Check(obb) -> writeList(obb)
             PyBytes_Check(obb) -> writeBytes(PyBytes_AsByteArray(obb))
             PyUnicode_Check(obb) -> writeString(PyUnicode_AsByteArray(obb))
