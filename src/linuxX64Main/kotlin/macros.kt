@@ -60,7 +60,10 @@ fun PyUnicode_AsByteArray(obb: PyObject): ByteArray {
     val encoded = PyUnicode_AsEncodedString(ptr, "utf-8", null)
         ?: PyError("Failed to encode string")
     val ba = PyBytes_AsByteArray(encoded.pointed)
-    _Py_XDECREF(encoded)
+
+    // must decref, new reference
+    Py_DecRef(encoded)
+
     return ba
 }
 
@@ -91,6 +94,11 @@ fun PyCode_Check(obb: PyObject): Boolean {
 }
 
 fun PySet_Check(obb: PyObject): Boolean {
+    val type = obb.ob_type!!
+
+    // frozenset special handling
+    if (type == PyFrozenSet_Type.ptr) return true
+    // just normal sets
     return PyType_IsSubtype(obb.ob_type!!, PySet_Type.ptr) != 0
 }
 

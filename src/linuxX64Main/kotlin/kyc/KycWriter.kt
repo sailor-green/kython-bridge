@@ -94,6 +94,12 @@ class KycWriter {
          * Compiles code to bytecode and writes it to
          */
         fun write(code: String, filename: String): ByteString {
+            Py_NoSiteFlag = 1
+            Py_IsolatedFlag = 1
+            Py_DontWriteBytecodeFlag = 1
+            Py_IgnoreEnvironmentFlag = 1
+            Py_NoUserSiteDirectory = 1
+
             Py_InitializeEx(0)
             try {
                 val compiled = Py_CompileStringExFlags(
@@ -173,7 +179,7 @@ class KycWriter {
             val item = PyTuple_GetItem(obb.ptr, idx)
                 ?: PyError("Somehow, index $idx out of range?")
             writeObject(item.pointed)
-            _Py_XDECREF(item)
+            // DO NOT DECREF
         }
     }
 
@@ -189,7 +195,7 @@ class KycWriter {
             val item = PyList_GetItem(obb.ptr, idx)
                 ?: PyError("Somehow, index $idx out of range?")
             writeObject(item.pointed)
-            _Py_XDECREF(item)
+            // DO NOT DECREF
         }
     }
 
@@ -211,16 +217,17 @@ class KycWriter {
             ?: PyError("Failed to get set iterator?")
 
         buffer.write(KycType.SET)
-        buffer.writeLongLe(PySet_Size(ptr))
+        buffer.writeIntLe(PySet_Size(ptr).toInt())
 
         try {
             while (true) {
                 val item = PyIter_Next(iter) ?: break
-                _Py_XDECREF(item)
+                // new ref, must decref
+                Py_DecRef(item)
                 writeObject(item.pointed)
             }
         } finally {
-            _Py_XDECREF(iter)
+            Py_DecRef(iter)
         }
 
     }
@@ -242,11 +249,12 @@ class KycWriter {
                 writeObject(key.pointed)
                 val item = PyDict_GetItem(ptr, key)!!
                 writeObject(item.pointed)
-                _Py_XDECREF(key)
-                _Py_XDECREF(item)
+
+                // key is new reference, must decref
+                Py_DecRef(key)
             }
         } finally {
-            _Py_XDECREF(iter)
+            Py_DecRef(iter)
         }
 
     }
@@ -266,7 +274,11 @@ class KycWriter {
      * Writes an object to the stream.
      */
     private fun writeObject(obb: PyObject) {
+        // bools come first as they are ints
+        // so this stops them being compiled to kyc ints
         when {
+            obb == Py_True!!.pointed -> buffer.write(KycType.TRUE)
+            obb == Py_False!!.pointed -> buffer.write(KycType.FALSE)
             PyCode_Check(obb) -> writeCode(obb.reinterpret())
             PyLong_Check(obb) -> writeLong(PyLong_AsLong(obb.ptr))
             PyFloat_Check(obb) -> writeFloat(obb)
@@ -276,8 +288,6 @@ class KycWriter {
             PyTuple_Check(obb) -> writeTuple(obb)
             PySet_Check(obb) -> writeSet(obb)
             PyDict_Check(obb) -> writeDict(obb)
-            obb == Py_True!!.pointed -> buffer.write(KycType.TRUE)
-            obb == Py_False!!.pointed -> buffer.write(KycType.FALSE)
             obb == Py_None!!.pointed -> buffer.write(KycType.NONE)
             else -> error("Unknown object ${obb.ob_type!!.pointed.tp_name!!.toKString()}")
         }
