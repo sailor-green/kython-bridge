@@ -1,0 +1,3 @@
+headers = Python/Python.h Python/pythonrun.h Python/object.h Python/tupleobject.h Python/code.h
+headerFilter = Python/*
+compilerOpts = -fPIC

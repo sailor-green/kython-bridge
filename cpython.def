@@ -1,5 +1,0 @@
-headers = Python.h pythonrun.h object.h tupleobject.h code.h
-package = cpython
-
-compilerOpts = -fPIC
-linkerOpts = -L/usr/lib -lpython3.9
