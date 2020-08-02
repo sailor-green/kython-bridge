@@ -26,28 +26,6 @@ kotlin {
     }
 
     hostTarget.apply {
-        binaries {
-            sharedLib {
-                baseName = "kython-bridge"
-                val linuxArgs = "-lcrypt -lpthread -ldl -lutil -lm -lm".split(" ").toTypedArray()
-                val osxArgs = "-ldl -framework CoreFoundation".split(" ").toTypedArray()
-
-                when (preset) {
-                    presets["macosX64"] -> linkerOpts(
-                        "-L/usr/lib",
-                        "-L/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin/",
-                        *osxArgs
-                    )
-                    presets["linuxX64"] -> linkerOpts(
-                        "-L/usr/lib -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu/",
-                        *linuxArgs
-                    )
-                    else -> throw GradleException("$preset is currently not supported.")
-                }
-
-            }
-        }
-
         compilations.getByName("main") {
             cinterops {
                 val cpython by creating {

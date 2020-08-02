@@ -1,2 +1,4 @@
 headers = Python.h pythonrun.h object.h tupleobject.h code.h
 compilerOpts = -fPIC
+linkerOpts.osx = -L/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin -ldl -framework CoreFoundation
+linkerOpts.linux_x64 = -L/usr/lib  -lcrypt -lpthread -ldl  -lutil -lm -lm
