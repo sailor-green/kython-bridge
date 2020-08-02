@@ -29,27 +29,35 @@ kotlin {
         binaries {
             sharedLib {
                 baseName = "kython-bridge"
-                // Not sure what to put here yet for platforms other than linux.
-                linkerOpts.addAll(
-                    ("-L/usr/lib -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu/ " +
-                        "-lcrypt -lpthread -ldl -lutil -lm -lm").split(" ")
-                )
+                val linuxArgs = "-lcrypt -lpthread -ldl -lutil -lm -lm".split(" ").toTypedArray()
+                val osxArgs = "-ldl -framework CoreFoundation".split(" ").toTypedArray()
+
+                when (preset) {
+                    presets["macosX64"] -> linkerOpts(
+                        "-L/usr/lib",
+                        "-L/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/config-3.9-darwin/",
+                        *osxArgs
+                    )
+                    presets["linuxX64"] -> linkerOpts(
+                        "-L/usr/lib -L/usr/lib/python3.9/config-3.9-x86_64-linux-gnu/",
+                        *linuxArgs
+                    )
+                    else -> throw GradleException("$preset is currently not supported.")
+                }
+
             }
         }
 
         compilations.getByName("main") {
             cinterops {
                 val cpython by creating {
+                    packageName("cpython")
                     when (preset) {
-                        presets["macosX64"] -> includeDirs.headerFilterOnly(
-                            "/usr/local/include"
-                        )
-                        presets["linuxX64"] -> includeDirs.headerFilterOnly(
-                            "/usr/include",
-                            "/usr/include/x86_64-linux-gnu"
-                        )
-                        presets["mingwX64"] -> includeDirs.headerFilterOnly(mingwPath.resolve("include"))
+                        presets["macosX64"] -> compilerOpts("-I/Library/Frameworks/Python.framework/Versions/3.9/include/python3.9")
+                        presets["linuxX64"] -> compilerOpts("-I/usr/include/python3.9")
+                        else -> throw GradleException("$preset is currently not supported.")
                     }
+
                 }
             }
 
